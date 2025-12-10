@@ -137,6 +137,9 @@ M.set_task_command = function(cmd)
   if not table_contains(M._state.command_history, final_cmd) then
     table.insert(M._state.command_history, final_cmd)
   end
+  vim.api.nvim_exec_autocmds("User", {
+    pattern = "ExecutorTaskChanged",
+  })
 end
 
 M._make_notification_popup = function(text)
@@ -278,6 +281,9 @@ M._on_exit = function(_, exit_code)
   end
   -- Force the statusline to redraw.
   vim.api.nvim_exec([[let &stl=&stl]], false)
+  vim.api.nvim_exec_autocmds("User", {
+    pattern = "ExecutorRunFinished",
+  })
 end
 
 M._show_notification = function(text, timeout)
@@ -354,6 +360,9 @@ M.run_task = function(one_off_command)
     stdout_buffered = true,
     on_stdout = M._collect_stdout,
     on_exit = M._on_exit,
+  })
+  vim.api.nvim_exec_autocmds("User", {
+    pattern = "ExecutorRunStarted",
   })
 end
 
