@@ -145,4 +145,8 @@ vim.api.nvim_create_user_command("ExecutorOneOff", function(data)
   Public.commands.run_one_off(data.args)
 end, { nargs = "*" })
 
+vim.api.nvim_create_user_command("ExecutorTest", function()
+  vim.print("Hello World")
+end, {})
+
 return Public
