@@ -65,10 +65,30 @@ Public.commands = {
     Executor.run(true)
   end,
   show_presets = function()
-    Output.preset_menu(Executor._stored_task_command, Executor._settings.preset_commands, function(chosen_option)
+    local function get_presets()
+      local current_filetype = vim.bo.filetype
+      local presets = {}
+      local filetype = current_filetype
+      for preset in Executor._settings.preset_commands do
+        if preset["filetype"] then
+          filetype = preset["filetype"]
+        elseif preset["ft"] then
+          filetype = preset["ft"]
+        end
+
+        if current_filetype == filetype then
+          table.insert(presets, preset)
+        end
+      end
+
+      return presets
+    end
+
+    Output.preset_menu(Executor._stored_task_command, get_presets(), function(chosen_option)
       if chosen_option == nil then
         return
       end
+
       if string.find(chosen_option, "[partial] ", 1, true) then
         local partial_command = chosen_option:gsub("%[partial%] ", ""):gsub("^%s*(.-)%s*$", "%1")
         Executor.trigger_set_command_input(partial_command, function()
