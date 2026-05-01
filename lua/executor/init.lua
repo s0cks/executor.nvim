@@ -87,7 +87,7 @@ Public.commands = {
     })
   end,
   show_history = function()
-    Output.history_menu(Executor._state.command_history, {
+    Output.history_picker(Executor._state.command_history, {
       callback = function(chosen_option)
         if chosen_option == nil then
           return
