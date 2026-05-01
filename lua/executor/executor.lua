@@ -274,9 +274,9 @@ M._on_exit = function(_, exit_code)
 
   if M._settings.notifications.task_completed then
     if exit_code > 0 then
-      M._show_notification("✖  Task errored", true)
+      vim.notify(" Task failed", vim.log.levels.ERROR)
     else
-      M._show_notification("✓ Task success!", true)
+      vim.notify(" Task finished", vim.log.levels.INFO)
     end
   end
   -- Force the statusline to redraw.
@@ -284,32 +284,6 @@ M._on_exit = function(_, exit_code)
   vim.api.nvim_exec_autocmds("User", {
     pattern = "ExecutorRunFinished",
   })
-end
-
-M._show_notification = function(text, timeout)
-  if M._state.notification_timer ~= nil then
-    M._state.notification_timer:close()
-    M._state.notification_timer = nil
-  end
-
-  if M._notification_popup ~= nil then
-    M._notification_popup:unmount()
-    M._notification_popup = nil
-  end
-
-  M._make_notification_popup(text)
-  if timeout then
-    M._state.notification_timer = vim.loop.new_timer()
-    M._state.notification_timer:start(
-      5000,
-      0,
-      vim.schedule_wrap(function()
-        M._notification_popup:unmount()
-        M._state.notification_timer:close()
-        M._state.notification_timer = nil
-      end)
-    )
-  end
 end
 
 -- Resolve any placeholders ($E_FN) in the command, and then store it.
@@ -347,7 +321,7 @@ M.run_task = function(one_off_command)
 
   M._state.running = true
   if M._settings.notifications.task_started then
-    M._show_notification("⟳ " .. final_cmd, false)
+    vim.notify("⟳ " .. final_cmd, vim.log.levels.INFO)
   end
   -- Force the statusline to redraw.
   vim.api.nvim_exec([[let &stl=&stl]], false)
