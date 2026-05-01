@@ -13,6 +13,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --]]
 
+local pickers = require("telescope.pickers")
+local finders = require("telescope.finders")
+local conf = require("telescope.config").values
+local actions = require("telescope.actions")
+local action_state = require("telescope.actions.state")
+
 local M = {}
 
 M.output_for_state = function(state)
@@ -133,6 +139,81 @@ M.preset_menu = function(current_stored_command, preset_commands_by_directory, c
   end)
 end
 
+---@class executor.PresetPickerOpts
+---@field callback? fun(selection) The callback for when a value is picked
+---@field title? string The title of the picker
+local default_preset_picker_opts = {
+  title = "[Executor.nvim] choose a command: ",
+}
+
+---@param opts? executor.PresetPickerOpts
+function M.preset_picker(current_stored_command, preset_commands_by_directory, opts)
+  opts = vim.tbl_deep_extend("force", default_preset_picker_opts, opts or {})
+  local cwd = vim.loop.cwd()
+  local select_options = {}
+  for directory_name, directory_commands in pairs(preset_commands_by_directory) do
+    local current_filetype = vim.bo.filetype
+    local filetype = current_filetype
+
+    if string.find(cwd, directory_name, 1, true) then
+      for _, command in ipairs(directory_commands) do
+        if command["filetype"] ~= nil then
+          filetype = command["filetype"]
+        elseif command["ft"] ~= nil then
+          filetype = command["ft"]
+        end
+
+        if current_filetype == filetype then
+          if type(command) == "string" then
+            table.insert(select_options, command)
+          elseif command.partial == true then
+            local final_cmd = command.cmd
+            if type(command.cmd) == "function" then
+              final_cmd = command.cmd()
+            end
+            table.insert(select_options, "[partial] " .. final_cmd)
+          elseif type(command.cmd) == "function" then
+            -- Allow a command to be a function that is executed per-buffer.
+            local final_cmd = command.cmd()
+            table.insert(select_options, final_cmd)
+          end
+        end
+      end
+    end
+  end
+
+  if #select_options == 0 then
+    print("Executor.nvim: No stored commands found for this working directory.")
+    return
+  end
+
+  if current_stored_command ~= nil then
+    table.insert(select_options, "[current] " .. current_stored_command)
+  end
+
+  pickers
+    .new(opts, {
+      prompt_title = opts.title,
+      finder = finders.new_table({
+        results = select_options,
+      }),
+      sorter = conf.generic_sorter(opts),
+      attach_mappings = function(prompt_bufnr, map)
+        actions.select_default:replace(function()
+          actions.close(prompt_bufnr)
+          local selection = action_state.get_selected_entry()
+          if opts["callback"] ~= nil then
+            if type(opts["callback"]) then
+              opts.callback(selection[1])
+            end
+          end
+        end)
+        return true
+      end,
+    })
+    :find()
+end
+
 M.history_menu = function(command_history, callback_after_choice)
   if #command_history == 0 then
     print("Executor.nvim: No command history to show.")
@@ -148,6 +229,50 @@ M.history_menu = function(command_history, callback_after_choice)
   }, function(choice)
     callback_after_choice(choice)
   end)
+end
+
+---@class executor.HistoryPickerOpts
+---@field callback? fun(selection) The callback for when a value is picked
+---@field title? string The title of the picker
+local default_history_picker_opts = {
+  title = "[Executor.nvim] choose an historical command: ",
+}
+
+---@param command_history table<string> The list of history items to pick from
+---@param opts? executor.HistoryPickerOpts
+function M.history_picker(command_history, opts)
+  opts = vim.tbl_deep_extend("force", default_history_picker_opts, opts or {})
+  if #command_history == 0 then
+    print("Executor.nvim: No command history to show.")
+    return
+  end
+
+  local menu_items = {}
+  for _, command in pairs(command_history) do
+    table.insert(menu_items, command)
+  end
+
+  pickers
+    .new(opts, {
+      prompt_title = opts.title,
+      finder = finders.new_table({
+        results = menu_items,
+      }),
+      sorter = conf.generic_sorter(opts),
+      attach_mappings = function(prompt_bufnr, map)
+        actions.select_default:replace(function()
+          actions.close(prompt_bufnr)
+          local selection = action_state.get_selected_entry()
+          if opts["callback"] ~= nil then
+            if type(opts["callback"]) then
+              opts.callback(selection[1])
+            end
+          end
+        end)
+        return true
+      end,
+    })
+    :find()
 end
 
 return M

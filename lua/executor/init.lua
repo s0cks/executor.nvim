@@ -65,33 +65,38 @@ Public.commands = {
     Executor.run(true)
   end,
   show_presets = function()
-    Output.preset_menu(Executor._stored_task_command, Executor._settings.preset_commands, function(chosen_option)
-      if chosen_option == nil then
-        return
-      end
+    Output.preset_picker(Executor._stored_task_command, Executor._settings.preset_commands, {
+      callback = function(chosen_option)
+        if chosen_option == nil then
+          return
+        end
 
-      if string.find(chosen_option, "[partial] ", 1, true) then
-        local partial_command = chosen_option:gsub("%[partial%] ", ""):gsub("^%s*(.-)%s*$", "%1")
-        Executor.trigger_set_command_input(partial_command, function()
+        if string.find(chosen_option, "[partial] ", 1, true) then
+          local partial_command = chosen_option:gsub("%[partial%] ", ""):gsub("^%s*(.-)%s*$", "%1")
+          Executor.trigger_set_command_input(partial_command, function()
+            Executor.run()
+          end)
+        elseif string.find(chosen_option, "[current] ", 1, true) then
+          -- No need to set the command, just run it, as the user has picked the current command.
           Executor.run()
-        end)
-      elseif string.find(chosen_option, "[current] ", 1, true) then
-        -- No need to set the command, just run it, as the user has picked the current command.
-        Executor.run()
-      else
-        Executor.set_task_command(chosen_option)
-        Executor.run()
-      end
-    end)
+        else
+          Executor.set_task_command(chosen_option)
+          Executor.run()
+        end
+      end,
+    })
   end,
   show_history = function()
-    Output.history_menu(Executor._state.command_history, function(chosen_option)
-      if chosen_option == nil then
-        return
-      end
-      Executor.set_task_command(chosen_option)
-      Executor.run()
-    end)
+    Output.history_menu(Executor._state.command_history, {
+      callback = function(chosen_option)
+        if chosen_option == nil then
+          return
+        end
+
+        Executor.set_task_command(chosen_option)
+        Executor.run()
+      end,
+    })
   end,
   run_one_off = function(one_off_command)
     Executor.run_one_off_cmd(one_off_command)
