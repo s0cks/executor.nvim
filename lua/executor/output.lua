@@ -87,20 +87,31 @@ M.preset_menu = function(current_stored_command, preset_commands_by_directory, c
   local cwd = vim.loop.cwd()
   local select_options = {}
   for directory_name, directory_commands in pairs(preset_commands_by_directory) do
+    local current_filetype = vim.bo.filetype
+    local filetype = current_filetype
+
     if string.find(cwd, directory_name, 1, true) then
       for _, command in ipairs(directory_commands) do
-        if type(command) == "string" then
-          table.insert(select_options, command)
-        elseif command.partial == true then
-          local final_cmd = command.cmd
-          if type(command.cmd) == "function" then
-            final_cmd = command.cmd()
+        if command["filetype"] ~= nil then
+          filetype = command["filetype"]
+        elseif command["ft"] ~= nil then
+          filetype = command["ft"]
+        end
+
+        if current_filetype == filetype then
+          if type(command) == "string" then
+            table.insert(select_options, command)
+          elseif command.partial == true then
+            local final_cmd = command.cmd
+            if type(command.cmd) == "function" then
+              final_cmd = command.cmd()
+            end
+            table.insert(select_options, "[partial] " .. final_cmd)
+          elseif type(command.cmd) == "function" then
+            -- Allow a command to be a function that is executed per-buffer.
+            local final_cmd = command.cmd()
+            table.insert(select_options, final_cmd)
           end
-          table.insert(select_options, "[partial] " .. final_cmd)
-        elseif type(command.cmd) == "function" then
-          -- Allow a command to be a function that is executed per-buffer.
-          local final_cmd = command.cmd()
-          table.insert(select_options, final_cmd)
         end
       end
     end
