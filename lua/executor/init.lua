@@ -69,7 +69,7 @@ Public.commands = {
       local current_filetype = vim.bo.filetype
       local presets = {}
       local filetype = current_filetype
-      for preset in Executor._settings.preset_commands do
+      for _, preset in ipairs(Executor._settings.preset_commands) do
         if preset["filetype"] ~= nil then
           filetype = preset["filetype"]
         elseif preset["ft"] ~= nil then
