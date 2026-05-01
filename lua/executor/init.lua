@@ -70,9 +70,9 @@ Public.commands = {
       local presets = {}
       local filetype = current_filetype
       for preset in Executor._settings.preset_commands do
-        if preset["filetype"] then
+        if preset["filetype"] ~= nil then
           filetype = preset["filetype"]
-        elseif preset["ft"] then
+        elseif preset["ft"] ~= nil then
           filetype = preset["ft"]
         end
 
